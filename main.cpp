@@ -268,7 +268,7 @@ array<string, 4> treatProgrammeEntry(int argc, char * argv[])
 
 
 
-
+// test: ./ContigConsensus -t test/t1.fasta -s test/s1.fasta
 int main(int argc, char *argv[])
 {
 	auto options = treatProgrammeEntry(argc, argv);
