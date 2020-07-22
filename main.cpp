@@ -1,18 +1,17 @@
 #include <iostream>
 
-#include <vector>
-#include <set>
-#include <map>
 #include <algorithm>
-#include "Contig.h"
+#include <map>
+#include <set>
+#include <vector>
+
+#include <unistd.h>
+
+
 #include "Match.h"
+#include "Parser.hpp"
 
 using namespace std;
-
-
-
-
-
 
 
 /**
@@ -125,93 +124,70 @@ vector<Match*> GetBEO(set<Match*> allMatches)
 
 		}
 	}
-
+	
 
 	return beoMatches;
 }
 
 
-
-
-
-
-
-
-int main()
+void algo(AssemblySet &T, AssemblySet &S, CostMap &scores)
 {
 	//for testing purposes
-	vector<Contig*> S;
-	S.push_back(new Contig({0,0,0,0,0,0,1,1,1,1}));
-
-	vector<Contig*> T;
-	T.push_back(new Contig({1, 0, 1, 0}));
-	T.push_back(new Contig({ 0, 0, 0 }));
-
+	
 
 	//scores are just 0 if same char, 1 if different char
 	//TODO: should actually be called costs, not scores
-	map<int, map<int, int>> scores;
-
-	for (int i = 0; i < 4; i++)
-	{
-		for (int j = 0; j < 4; j++)
-		{
-			int score = 0;
-			if (i == j)
-				score = 0;
-			scores[i][j] = 1;
-		}
-	}
+	//CostMap scores;
 
 	vector<Match*> matches;
 
-	for (Contig* C : S)
+	for (Contig& C : S)
 	{
-		for (Contig* D : T)
+		for (Contig& D : T)
 		{
-			int minlen = min(C->size(), D->size());
-			int maxlen = max(C->size(), D->size());
+			int minlen = min(C.size(), D.size());
+			int maxlen = max(C.size(), D.size());
 
 			//this loop computes suffix-prefix matches and prefix-suffix matches
 			for (int i = 0; i < minlen; ++i)
 			{
 				//compute all suffix-prefix matches of length i + 1
-				matches.push_back( new Match(C, D, C->size() - i - 1, 0, i + 1, false, false, scores) );
-				matches.push_back(new Match(C, D, C->size() - i - 1, 0, i + 1, true, false, scores) );
-				matches.push_back(new Match(C, D, C->size() - i - 1, 0, i + 1, false, true, scores));
-				matches.push_back(new Match(C, D, C->size() - i - 1, 0, i + 1, true, true, scores));
+				matches.push_back( new Match(&C, &D, C.size() - i - 1, 0, i + 1, false, false, scores) );
+				matches.push_back(new Match(&C, &D, C.size() - i - 1, 0, i + 1, true, false, scores) );
+				matches.push_back(new Match(&C, &D, C.size() - i - 1, 0, i + 1, false, true, scores));
+				matches.push_back(new Match(&C, &D, C.size() - i - 1, 0, i + 1, true, true, scores));
 				
 
 				//compute all prefix-suffix matches of length i + 1
-				matches.push_back(new Match(C, D, 1, D->size() - i - 1, i + 1, false, false, scores));
-				matches.push_back(new Match(C, D, 1, D->size() - i - 1, i + 1, true, false, scores));
-				matches.push_back(new Match(C, D, 1, D->size() - i - 1, i + 1, false, true, scores));
-				matches.push_back(new Match(C, D, 1, D->size() - i - 1, i + 1, true, true, scores));
+				matches.push_back(new Match(&C, &D, 1, D.size() - i - 1, i + 1, false, false, scores));
+				matches.push_back(new Match(&C, &D, 1, D.size() - i - 1, i + 1, true, false, scores));
+				matches.push_back(new Match(&C, &D, 1, D.size() - i - 1, i + 1, false, true, scores));
+				matches.push_back(new Match(&C, &D, 1, D.size() - i - 1, i + 1, true, true, scores));
 				
 			}
 
 			//compute all full matches
-			if (C->size() <= D->size())
+			if (C.size() <= D.size())
 			{
 				//here i has all starting pos in D
-				for (int i = 0; i <= D->size() - C->size(); i++)
+				for (int i = 0; i <= D.size() - C.size(); i++)
 				{
-					matches.push_back(new Match(C, D, 0, i, C->size(), false, false, scores) );
-					matches.push_back(new Match(C, D, 0, i, C->size(), true, false, scores) );
-					matches.push_back(new Match(C, D, 0, i, C->size(), false, true, scores) );
-					matches.push_back(new Match(C, D, 0, i, C->size(), true, true, scores) );
+					matches.push_back(new Match(&C, &D, 0, i, C.size(), false, false, scores) );
+					matches.push_back(new Match(&C, &D, 0, i, C.size(), true, false, scores) );
+					matches.push_back(new Match(&C, &D, 0, i, C.size(), false, true, scores) );
+					matches.push_back(new Match(&C, &D, 0, i, C.size(), true, true, scores) );
 				}
 			}
 			else
 			{
 				//maybe we could do it in one loop, but clarity might be lost
 				//here i has all starting pos in D
-				for (int i = 0; i <= C->size() - D->size(); i++)
+				for (int i = 0; i <= C.size() - D.size(); i++)
 				{
-					matches.push_back(new Match(C, D, i, 0, D->size(), false, false, scores) );
-					matches.push_back(new Match(C, D, i, 0, D->size(), true, false, scores) );
-					matches.push_back(new Match(C, D, i, 0, D->size(), false, true, scores) );
-					matches.push_back(new Match(C, D, i, 0, D->size(), true, true, scores) );
+					matches.push_back(new Match(&C, &D, i, 0, D.size(), false, false, scores) );
+					matches.push_back(new Match(&C, &D, i, 0, D.size(), true, false, scores) );
+					matches.push_back(new Match(&C, &D, i, 0, D.size(), false, true, scores) );
+					matches.push_back(new Match(&C, &D, i, 0, D.size(), true, true, scores) );
 				}
 			}
 		}
@@ -241,15 +217,70 @@ int main()
 		delete m;
 	}
 
+}
 
-	for (Contig* C : S)
+
+
+array<string, 4> treatProgrammeEntry(int argc, char * argv[])
+{
+	int opt;
+	array<string, 4> optionsValues = {"-1","-1","-1","-1"};
+
+	while((opt = getopt(argc, argv, ":hs:t:c:o:")) !=-1)
 	{
-		delete C;
+		switch (opt)
+		{
+		case 't': 
+			optionsValues[0]=optarg;
+			break;
+		case 's':
+			optionsValues[1]=optarg;
+			break;
+		
+		case 'c': 
+			optionsValues[2]=optarg;
+			break;
+		
+		case 'h':
+		default:
+			cout << "Available options:\n";
+			cout << "-t fasta file containing the T set\n";
+			cout << "-s fasta file containing the S set\n";
+			cout << "-o output fasta file name (not implemented)\n";
+			cout << "-c cost map file (optionnal)\n";
+			break;
+		}
+	}
+	if(optionsValues[0]=="-1")
+	{
+		cout << "Error, \"T\" file not provided\n";
+		exit(EXIT_FAILURE);
+	}
+	if(optionsValues[1]=="-1")
+	{
+		cout << "Error, \"S\" file not provided\n";
+		exit(EXIT_FAILURE);
 	}
 
-	for (Contig* C : T)
-	{
-		delete C;
-	}
+
+	return optionsValues;
+}
+
+
+
+
+int main(int argc, char *argv[])
+{
+	auto options = treatProgrammeEntry(argc, argv);
+	CostMap c(options[2].c_str());
+	
+	cout << "Reading T input file: " << options[0] << endl;
+	AssemblySet T = parseFile(options[0].c_str());
+	cout << "Done\n\n";
+	cout << "Reading S input file: " << options[1] << endl;
+	AssemblySet S = parseFile(options[1].c_str());
+	cout << "Done\n\n";
+
+	algo(T, S,c);
 }
 

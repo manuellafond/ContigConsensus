@@ -1,16 +1,19 @@
 #pragma once
 
+#include <iostream>
 #include <vector>
+
 
 using namespace std;
 
 class Contig
 {
+	friend ostream& operator<<(ostream&, const Contig&);
 private:
-	vector<int> str;
+	vector<unsigned> str;
 
 public:
-
+  
 	Contig() : Contig(0)
 	{
 		
@@ -21,9 +24,9 @@ public:
 		str.resize(size);
 	}
 
-	Contig(vector<int> arr)
+	Contig(vector<unsigned>&& arr)
 	{
-		str = arr;
+		str = move(arr);
 	}
 
 
@@ -33,7 +36,7 @@ public:
 	}
 
 
-	int& at(int i, bool isReverse = false)
+	unsigned& at(int i, bool isReverse = false)
 	{
 		if (!isReverse)
 			return str[i];
@@ -53,5 +56,6 @@ public:
 	}
 
 
-};
 
+};
+typedef vector<Contig> AssemblySet;

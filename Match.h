@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Contig.h"
+#include "CostMap.hpp"
 #include <map>
 
 using namespace std;
@@ -33,7 +34,7 @@ struct Match
 		score = 0;
 	}
 
-	Match(Contig* c1, Contig* c2, int start1, int start2, int length, bool isReverse1, bool isReverse2, map<int, map<int, int>>& scores)
+	Match(Contig* c1, Contig* c2, int start1, int start2, int length, bool isReverse1, bool isReverse2, CostMap& scores)
 	{
 		this->contig1 = c1;
 		this->contig2 = c2;
@@ -48,7 +49,7 @@ struct Match
 		{
 			int char1 = c1->at(start1 + p, isReverse1);
 			int char2 = c2->at(start2 + p, isReverse2);
-			this->score += scores[char1][char2];
+			this->score += scores(char1,char2);
 		}
 
 	}

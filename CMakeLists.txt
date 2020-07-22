@@ -10,4 +10,6 @@ add_executable(ContigConsensus
         Contig.h
         main.cpp
         Match.cpp
-        Match.h)
+        Match.h
+	Parser.hpp)
+
