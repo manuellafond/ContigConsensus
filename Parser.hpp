@@ -1,4 +1,5 @@
 #pragma once
+
 #include <dirent.h>
 #include <iostream>
 #include <fstream>
@@ -10,15 +11,6 @@
 
 using namespace std;
 
-
-
-
-ostream &operator<<(ostream& os, const Contig& contig)
-{
-	for(int c : contig.str)
-		os<<(char)c;
-	return os;
-}
 
 
 
@@ -53,7 +45,7 @@ vector<Contig> parseFile(const char* fileName)
 
 	#if DEBUG==true
 	for(const Contig &cont : contigs)
-		cout << cont << "\n";
+	  cout << cont << "\n";
 	#endif
 
 	return contigs;

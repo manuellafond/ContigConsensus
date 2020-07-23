@@ -1,8 +1,11 @@
 #pragma once
+#include <map>
 
 #include "Contig.h"
 #include "CostMap.hpp"
-#include <map>
+
+
+
 
 using namespace std;
 
@@ -52,6 +55,9 @@ struct Match
 			this->score += scores(char1,char2);
 		}
 
+		//		cout << "New Match: " << *c1 << *c2 << endl;
+		
+		
 	}
 
 

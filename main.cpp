@@ -198,12 +198,13 @@ void algo(AssemblySet &T, AssemblySet &S, CostMap &scores)
 	//for debugging
 	for (Match* m : matches)
 	{
-		cout << "Matching ";
-		for (int i = 0; i < m->contig1->size(); ++i)
-			cout << m->contig1->at(i);
-		cout << "   vs   ";
-		for (int i = 0; i < m->contig2->size(); ++i)
-			cout << m->contig2->at(i);
+		cout << "Matching " << m->contig1 << " vs " << m->contig2;
+		/*for (int i = 0; i < m->contig1->size(); ++i)
+		  cout << m->contig1->at(i);*
+		  cout << "   vs   ";
+		  for (int i = 0; i < m->contig2->size(); ++i)
+		  cout << m->contig2->at(i);*/
+		
 		cout << endl;
 		cout << "s1=" << m->start1 << " s2=" << m->start2 << " r1=" << m->isReverse1 
 			 << " r2=" << m->isReverse2 << " l="<<m->length<<" s="<<m->score<<endl;

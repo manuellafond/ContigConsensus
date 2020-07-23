@@ -8,7 +8,7 @@ using namespace std;
 
 class Contig
 {
-	friend ostream& operator<<(ostream&, const Contig&);
+  	friend ostream& operator<<(ostream&, const Contig&);
 private:
 	vector<unsigned> str;
 
@@ -59,3 +59,10 @@ public:
 
 };
 typedef vector<Contig> AssemblySet;
+
+ostream &operator<<(ostream& os, const Contig& contig)
+{
+	for(int c : contig.str)
+		os<<(char)c;
+	return os;
+}
