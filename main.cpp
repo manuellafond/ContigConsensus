@@ -209,7 +209,7 @@ void algo(AssemblySet &T, AssemblySet &S, CostMap &scores)
 		}
 	}
 
-	hungarian_algorithm(T, S, max_matches, maximum_value);
+	vector<Match*> selected_suf_pref_matches = hungarian_algorithm(T, S, max_matches, maximum_value);
 
 
 
