@@ -60,6 +60,7 @@ public:
 };
 typedef vector<Contig> AssemblySet;
 
+
 ostream &operator<<(ostream& os, const Contig& contig)
 {
 	for(int c : contig.str)

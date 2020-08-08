@@ -13,10 +13,10 @@ using namespace std;
 //Note: this is a struct, so everything is public
 struct Match
 {
-	static const int MATCHTYPE_PREFIX = 0;
-	static const int MATCHTYPE_SUFFIX = 1;
-	static const int MATCHTYPE_FULL_T_IN_S = 2;
-	static const int MATCHTYPE_FULL_S_IN_T = 3;
+	static const unsigned MATCHTYPE_PREFIX = 1;
+	static const unsigned MATCHTYPE_SUFFIX = 2;
+	static const unsigned MATCHTYPE_FULL_T_IN_S = 4;
+	static const unsigned MATCHTYPE_FULL_S_IN_T = 8;
 
 	Contig* contig1;
 	Contig* contig2;
@@ -36,7 +36,8 @@ struct Match
 
 		score = 0;
 	}
-
+		
+  
 	Match(Contig* c1, Contig* c2, int start1, int start2, int length, bool isReverse1, bool isReverse2, CostMap& scores)
 	{
 		this->contig1 = c1;
@@ -60,7 +61,7 @@ struct Match
 		
 	}
 
-
+		
 
 
 	int GetType()
@@ -130,4 +131,6 @@ struct Match
 	
 
 };
+
+typedef map<Contig*,map<Contig*,Match*>> MM_map;
 

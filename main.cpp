@@ -7,9 +7,11 @@
 
 #include <unistd.h>
 
-
+#include "Hungarian_algo.hpp"
 #include "Match.h"
 #include "Parser.hpp"
+
+
 
 using namespace std;
 
@@ -130,6 +132,7 @@ vector<Match*> GetBEO(set<Match*> allMatches)
 }
 
 
+
 void algo(AssemblySet &T, AssemblySet &S, CostMap &scores)
 {
 	//for testing purposes
@@ -140,6 +143,9 @@ void algo(AssemblySet &T, AssemblySet &S, CostMap &scores)
 	//CostMap scores;
 
 	vector<Match*> matches;
+	MM_map max_matches;
+	int maximum_value=0;
+	
 
 	for (Contig& C : S)
 	{
@@ -164,9 +170,19 @@ void algo(AssemblySet &T, AssemblySet &S, CostMap &scores)
 				matches.push_back(new Match(&C, &D, 1, D.size() - i - 1, i + 1, false, true, scores));
 				matches.push_back(new Match(&C, &D, 1, D.size() - i - 1, i + 1, true, true, scores));
 				
+				
 			}
-
-			//compute all full matches
+			//compute maximum prefix-suffix match between C and D
+			//cout << C << " and " << D <<endl;
+			auto tmp = *max_element(matches.end()-8*minlen,matches.end(),
+						[](Match* m1,Match*m2){
+						  return m1->score<m2->score;
+						});
+                        max_matches[&C][&D] = tmp;
+                        maximum_value=max(maximum_value,tmp->score);
+			
+			
+                        //compute all full matches
 			if (C.size() <= D.size())
 			{
 				//here i has all starting pos in D
@@ -192,6 +208,8 @@ void algo(AssemblySet &T, AssemblySet &S, CostMap &scores)
 			}
 		}
 	}
+
+	hungarian_algorithm(T, S, max_matches, maximum_value);
 
 
 

@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.16)
 project(ContigConsensus)
 
 set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_BUILD_TYPE Debug)
 
 include_directories(.)
 
@@ -11,5 +12,6 @@ add_executable(ContigConsensus
         main.cpp
         Match.cpp
         Match.h
-	Parser.hpp)
+	Parser.hpp
+	Hungarian_algo.hpp)
 
