@@ -14,7 +14,7 @@ using namespace std;
 
 
 
-vector<Contig> parseFile(const char* fileName)
+vector<Contig> parseFile(const char* fileName, int t)
 {
 	ifstream file(fileName);
 	if(!file)
@@ -39,7 +39,7 @@ vector<Contig> parseFile(const char* fileName)
 			
 		} while (c!='>' && c != EOF);
 		if(seq.size()>0)
-			contigs.push_back(move(seq));
+		    contigs.push_back(Contig(move(seq),t));
 		
 	}
 
@@ -51,30 +51,31 @@ vector<Contig> parseFile(const char* fileName)
 	return contigs;
 }
 
-vector<AssemblySet> treatDirectory(const char *dirName)
-{
-	vector<AssemblySet> assemblySet;
-	DIR* dir;
-	struct dirent *ent;
-	dir=opendir(dirName);
-        if (dir == NULL) {
-		cout << "Error: could not open directory " << dirName << "\n";
-		exit(EXIT_FAILURE);
-        }
-	while((ent=readdir(dir))!=NULL){
-		if(ent->d_type!=DT_REG)
-			continue;
+// vector<AssemblySet> treatDirectory(const char *dirName)
+// {
+// 	vector<AssemblySet> assemblySet;
+// 	DIR* dir;
+// 	struct dirent *ent;
+// 	dir=opendir(dirName);
+//         if (dir == NULL) {
+// 		cout << "Error: could not open directory " << dirName << "\n";
+// 		exit(EXIT_FAILURE);
+//         }
+
+// 	while((ent=readdir(dir))!=NULL){
+// 		if(ent->d_type!=DT_REG)
+// 			continue;
 		
-		string f_name = ent->d_name;
-		if(f_name.find(".fasta")== string::npos
-		   || f_name.substr(f_name.find_last_of(".")) != ".fasta")
-			continue;
+// 		string f_name = ent->d_name;
+// 		if(f_name.find(".fasta")== string::npos
+// 		   || f_name.substr(f_name.find_last_of(".")) != ".fasta")
+// 			continue;
 		
-		cout << "Read fasta file: " << f_name <<"\n";
-		string file = dirName;
-		file.append("/");
-		file.append(ent->d_name);
-		assemblySet.push_back(parseFile(file.c_str()));
-	}
-	return assemblySet;
-}
+// 		cout << "Read fasta file: " << f_name <<"\n";
+// 		string file = dirName;
+// 		file.append("/");
+// 		file.append(ent->d_name);
+// 		assemblySet.push_back(parseFile(file.c_str()));
+// 	}
+// 	return assemblySet;
+// }

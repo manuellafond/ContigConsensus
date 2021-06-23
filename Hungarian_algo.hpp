@@ -6,7 +6,7 @@
 
 #include "Match.h"
 
-#define DEBUG_HUNG false
+#define DEBUG_HUNG true
 
 struct data {
   unsigned nb_selected_zero;
@@ -183,8 +183,9 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
   data d(max_value,max(S.size(),T.size()));
 
   for(int i = 0; i<S.size();++i)
-    for (int j = 0; j < T.size(); ++j) 
-      d.mat[i][j] -= matches[&S[i]][&T[j]]->score;
+    for (int j = 0; j < T.size(); ++j)
+      if(matches[&S[i]][&T[j]]!=nullptr)
+	d.mat[i][j] -= matches[&S[i]][&T[j]]->score;
     
 
   for (int i = 0; i < d.mat.size(); ++i) {
@@ -217,7 +218,7 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
        cout << "empty)";
     else cout << T[d.selected_zero_r[i]] << ")";
     cout << ": score -> ";
-    if(i>S.size()-1 || d.selected_zero_r[i]>T.size()-1)
+    if(i>S.size()-1 || d.selected_zero_r[i]>T.size()-1 || matches[&S[i]][&T[d.selected_zero_r[i]]]==nullptr)
       cout << "0\n";
     else cout << matches[&S[i]][&T[d.selected_zero_r[i]]]->score<< endl;
 
@@ -226,8 +227,10 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
   
   vector<Match*> selected_matches;
   for (int i = 0; i < d.mat.size(); ++i)
-    if(i<S.size() && d.selected_zero_r[i]<T.size())
-      selected_matches.push_back(matches[&S[i]][&T[d.selected_zero_r[i]]]);
+    if (i < S.size() && d.selected_zero_r[i] < T.size()) {
+      if(matches[&S[i]][&T[d.selected_zero_r[i]]] != nullptr)
+	selected_matches.push_back(matches[&S[i]][&T[d.selected_zero_r[i]]]);
+    } 
 
   return selected_matches;
 }

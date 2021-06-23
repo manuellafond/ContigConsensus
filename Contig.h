@@ -8,52 +8,51 @@ using namespace std;
 
 class Contig
 {
-  	friend ostream& operator<<(ostream&, const Contig&);
+  friend ostream& operator<<(ostream&, const Contig&);
 private:
-	vector<unsigned> str;
-
-public:
-  
-	Contig() : Contig(0)
-	{
+  vector<unsigned> str;
 		
-	}
+public:
 
-	Contig(int size)
-	{
-		str.resize(size);
-	}
+  // indicates to which set of contigs its belongs
+  const unsigned t; 
+  
 
-	Contig(vector<unsigned>&& arr)
-	{
-		str = move(arr);
-	}
+  Contig(unsigned t, size_t size=0) : t(t)
+  {
+    str.resize(size);
+  }
 
-
-	void resize(int dim)
-	{
-		str.resize(dim);
-	}
+  Contig(vector<unsigned>&& arr, unsigned t) : t(t)
+  {
+    str = move(arr);
+  }
 
 
-	unsigned& at(int i, bool isReverse = false)
-	{
-		if (!isReverse)
-			return str[i];
-		else
-			return str[str.size() - 1 - i];
-	}
-
-	/*int& atrev(int i)
-	{
-		return str[str.size() - 1 - i];	//backcheck this
-	}*/
+  void resize(size_t dim) 
+  {
+    str.resize(dim);
+  }
 
 
-	int size()
-	{
-		return str.size();
-	}
+  unsigned& at(size_t i, bool isReverse = false)
+  {
+    if (!isReverse)
+      return str[i];
+    else
+      return str[str.size() - 1 - i];
+  }
+
+  /*int& atrev(int i)
+    {
+    return str[str.size() - 1 - i];	//backcheck this
+    }*/
+
+
+  size_t size()
+  {
+    return str.size();
+  }
 
 
 
@@ -63,7 +62,7 @@ typedef vector<Contig> AssemblySet;
 
 ostream &operator<<(ostream& os, const Contig& contig)
 {
-	for(int c : contig.str)
-		os<<(char)c;
-	return os;
+  for(int c : contig.str)
+    os<<(char)c;
+  return os;
 }
