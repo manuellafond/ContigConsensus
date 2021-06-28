@@ -159,4 +159,5 @@ ostream &operator<<(ostream& os, const Match& m)
 
 
 typedef map<Contig*,map<Contig*,Match*>> MM_map;
+typedef map<Contig*,map<Contig*,pair<unsigned, Match*>>> MM_map_test;
  

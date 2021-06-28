@@ -6,7 +6,7 @@
 
 #include "Match.h"
 
-#define DEBUG_HUNG true
+#define DEBUG_HUNG false
 
 struct data {
   unsigned nb_selected_zero;
@@ -93,10 +93,12 @@ bool select_zero(data &d)
 
 void augment(data &d,int i, int j)
 {
+  d.display();
   // step 2'
   vector<array<int,2>> invert_s,invert_p;
   invert_p.push_back({i,j});
   while(d.selected_zero_c[j]!=-1){
+    d.display();
     i=d.selected_zero_c[j];
     invert_s.push_back({i,j});
     j=d.zero_prime_r[i];
@@ -117,6 +119,7 @@ void augment(data &d,int i, int j)
 
 bool prime(data &d)
 {
+  cout << "a\n";
   for(int i=0;i<d.mat.size();++i){
     if(d.selected_zero_c[i]!=-1)
       d.mark_c[i]=true;
@@ -124,9 +127,10 @@ bool prime(data &d)
       d.mark_r[i]=false;
   }
 
-  
+  cout << "c\n";
   for(int i=0; i<d.mat.size();++i)
     for(int j =0; j<d.mat.size();++j){
+        cout << "e\n";
       if (d.mat[i][j] == 0 && d.selected_zero_r[i] != j) {
         d.zero_prime_r[i]=j;
 	d.zero_prime_c[j]=i;
@@ -140,6 +144,7 @@ bool prime(data &d)
 	
       }
     }
+    cout << "b\n";
   return true;
 }
 
@@ -166,7 +171,7 @@ void substract_min(data &d)
 }
 
 
-std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& matches, int max_value)
+std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& matches, int max_value, unsigned &score)
 {
 
   #if DEBUG_HUNG
@@ -183,10 +188,13 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
   data d(max_value,max(S.size(),T.size()));
 
   for(int i = 0; i<S.size();++i)
-    for (int j = 0; j < T.size(); ++j)
-      if(matches[&S[i]][&T[j]]!=nullptr)
-	d.mat[i][j] -= matches[&S[i]][&T[j]]->score;
-    
+    for (int j = 0; j < T.size(); ++j) {
+      try {
+        d.mat[i][j] -= matches.at(&S[i]).at(&T[j])->score;
+      } catch (out_of_range) {
+	d.mat[i][j] -= 0;
+      }
+    }
 
   for (int i = 0; i < d.mat.size(); ++i) {
     int min_tmp=INT_MAX;
@@ -203,10 +211,13 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
     for (int i = 0; i < d.mat.size(); ++i)
       d.mat[i][j]-=min_tmp;
   }
-  
-  while(!select_zero(d))
-    if(prime(d))
+
+
+
+  while (!select_zero(d)) {
+    if (prime(d))
       substract_min(d);
+  }
 
 #if DEBUG_HUNG
   cout << "Selected matches:\n";
@@ -218,7 +229,7 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
        cout << "empty)";
     else cout << T[d.selected_zero_r[i]] << ")";
     cout << ": score -> ";
-    if(i>S.size()-1 || d.selected_zero_r[i]>T.size()-1 || matches[&S[i]][&T[d.selected_zero_r[i]]]==nullptr)
+    if(i>S.size()-1 || d.selected_zero_r[i]>T.size()-1)
       cout << "0\n";
     else cout << matches[&S[i]][&T[d.selected_zero_r[i]]]->score<< endl;
 
@@ -228,9 +239,13 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
   vector<Match*> selected_matches;
   for (int i = 0; i < d.mat.size(); ++i)
     if (i < S.size() && d.selected_zero_r[i] < T.size()) {
-      if(matches[&S[i]][&T[d.selected_zero_r[i]]] != nullptr)
-	selected_matches.push_back(matches[&S[i]][&T[d.selected_zero_r[i]]]);
-    } 
-
+      try {
+        if (matches[&S[i]][&T[d.selected_zero_r[i]]]->score != 0) {
+          selected_matches.push_back(matches[&S[i]][&T[d.selected_zero_r[i]]]);
+	  score+=matches[&S[i]][&T[d.selected_zero_r[i]]]->score;
+        }
+      }
+      catch (out_of_range) {}
+    }
   return selected_matches;
 }
