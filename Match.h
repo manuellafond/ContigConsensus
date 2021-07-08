@@ -1,6 +1,7 @@
 #pragma once
 #include <algorithm>
 #include <map>
+#include <set>
 #include <vector>
 
 #include "Contig.h"
@@ -20,6 +21,15 @@ struct Match
   static const unsigned MATCHTYPE_FULL_T_IN_S = 3;
   static const unsigned MATCHTYPE_FULL_S_IN_T = 4;
 
+  static bool shorter(Match *m1,Match *m2)
+  {
+    return m1->length < m2->length;
+  }
+
+  typedef set<Match*,decltype(&shorter)> SortedLengthSet;
+  typedef map<Contig*,map<Contig*,Match*>> MM_map;
+
+  
   struct Mcontig {
     Contig* contig;
     size_t start;
@@ -158,6 +168,6 @@ ostream &operator<<(ostream& os, const Match& m)
 
 
 
-typedef map<Contig*,map<Contig*,Match*>> MM_map;
-typedef map<Contig*,map<Contig*,pair<unsigned, Match*>>> MM_map_test;
- 
+
+
+

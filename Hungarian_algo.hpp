@@ -62,7 +62,7 @@ struct data {
 
 bool select_zero(data &d)
 {
-
+  //d.display();
   unsigned nb_zero=0;
   for(int i=0; i<d.mat.size();++i){
     if(d.selected_zero_r[i]!=-1)
@@ -77,7 +77,7 @@ bool select_zero(data &d)
     }
   d.nb_selected_zero+=nb_zero;
 
-
+  //d.display();
 
   if(d.nb_selected_zero==d.mat.size())
     return true; // optimality!
@@ -87,18 +87,19 @@ bool select_zero(data &d)
     for(auto *v : {&d.mark_c,&d.mark_r})
       v->assign(d.mat.size(),false);
   }
+
+  
   return false;
 }
 
 
 void augment(data &d,int i, int j)
 {
-  d.display();
+  //  cout << "augment\n";
   // step 2'
   vector<array<int,2>> invert_s,invert_p;
   invert_p.push_back({i,j});
   while(d.selected_zero_c[j]!=-1){
-    d.display();
     i=d.selected_zero_c[j];
     invert_s.push_back({i,j});
     j=d.zero_prime_r[i];
@@ -119,7 +120,7 @@ void augment(data &d,int i, int j)
 
 bool prime(data &d)
 {
-  cout << "a\n";
+  // cout << "prime\n";
   for(int i=0;i<d.mat.size();++i){
     if(d.selected_zero_c[i]!=-1)
       d.mark_c[i]=true;
@@ -127,24 +128,32 @@ bool prime(data &d)
       d.mark_r[i]=false;
   }
 
-  cout << "c\n";
+  //d.display();
+
+  
+  bool unmarked_zero = false;
+  while(!unmarked_zero){
+    unmarked_zero=true;
   for(int i=0; i<d.mat.size();++i)
     for(int j =0; j<d.mat.size();++j){
-        cout << "e\n";
-      if (d.mat[i][j] == 0 && d.selected_zero_r[i] != j) {
+      if (d.mat[i][j] == 0 && !d.mark_r[i] && !d.mark_c[j]) {
+	unmarked_zero=false;
+	
         d.zero_prime_r[i]=j;
 	d.zero_prime_c[j]=i;
 
         if (d.selected_zero_r[i] == -1) {
-	  augment(d,i,j);
-	  return false;
+          augment(d, i, j);
+          return false;
         }
-	d.mark_c[d.selected_zero_r[i]]=false;
-	d.mark_r[i]=true;
-	
+        d.mark_c[d.selected_zero_r[i]] = false;
+
+        d.mark_r[i] = true;
       }
     }
-    cout << "b\n";
+  }
+  //  cout << "fin prime\n";
+  //d.display();
   return true;
 }
 
@@ -159,6 +168,8 @@ void substract_min(data &d)
     }
   }
 
+
+
   for (int i = 0; i < d.mat.size(); ++i) {
     for (int j = 0; j < d.mat.size(); ++j) {
       if(d.mark_r[i])
@@ -167,11 +178,11 @@ void substract_min(data &d)
 	d.mat[i][j]-=min_tmp;
     }
   }
-  
+
 }
 
 
-std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& matches, int max_value, unsigned &score)
+std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, Match::MM_map& matches, int max_value, unsigned &score)
 {
 
   #if DEBUG_HUNG
@@ -192,10 +203,11 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
       try {
         d.mat[i][j] -= matches.at(&S[i]).at(&T[j])->score;
       } catch (out_of_range) {
-	d.mat[i][j] -= 0;
+	d.mat[i][j] = 0;
       }
     }
-
+  
+  
   for (int i = 0; i < d.mat.size(); ++i) {
     int min_tmp=INT_MAX;
     for (int j = 0; j < d.mat.size(); ++j)
@@ -212,7 +224,7 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
       d.mat[i][j]-=min_tmp;
   }
 
-
+  //  d.display();
 
   while (!select_zero(d)) {
     if (prime(d))
@@ -231,8 +243,13 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
     cout << ": score -> ";
     if(i>S.size()-1 || d.selected_zero_r[i]>T.size()-1)
       cout << "0\n";
-    else cout << matches[&S[i]][&T[d.selected_zero_r[i]]]->score<< endl;
-
+    else
+      try {
+        cout << matches.at(&S[i]).at(&T[d.selected_zero_r[i]])->score << endl;
+      }
+      catch (out_of_range) {
+	cout << "0\n";
+      }
   }
 #endif
   
@@ -240,9 +257,9 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, MM_map& 
   for (int i = 0; i < d.mat.size(); ++i)
     if (i < S.size() && d.selected_zero_r[i] < T.size()) {
       try {
-        if (matches[&S[i]][&T[d.selected_zero_r[i]]]->score != 0) {
-          selected_matches.push_back(matches[&S[i]][&T[d.selected_zero_r[i]]]);
-	  score+=matches[&S[i]][&T[d.selected_zero_r[i]]]->score;
+        if (matches.at(&S[i]).at(&T[d.selected_zero_r[i]])->score != 0) {
+          selected_matches.push_back(matches.at(&S[i]).at(&T[d.selected_zero_r[i]]));
+	  score+=matches.at(&S[i]).at(&T[d.selected_zero_r[i]])->score;
         }
       }
       catch (out_of_range) {}

@@ -11,6 +11,7 @@ class Contig
   friend ostream& operator<<(ostream&, const Contig&);
 private:
   vector<unsigned> str;
+  const string name;
 		
 public:
 
@@ -18,21 +19,23 @@ public:
   const unsigned t; 
   
 
-  Contig(unsigned t, size_t size=0) : t(t)
+  Contig(unsigned t, string &&name,size_t size=0) : t(t), name(move(name))
   {
     str.resize(size);
   }
 
-  Contig(vector<unsigned>&& arr, unsigned t) : t(t)
-  {
-    str = move(arr);
-  }
+  Contig(vector<unsigned>&& arr, string &&name, unsigned t) : str(move(arr)), name(move(name)), t(t) {}
 
 
   void resize(size_t dim) 
   {
     str.resize(dim);
   }
+
+  const string & getName() const
+  { 
+    return name;
+  } 
 
 
   unsigned& at(size_t i, bool isReverse = false)

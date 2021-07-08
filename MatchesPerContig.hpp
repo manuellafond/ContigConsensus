@@ -1,7 +1,6 @@
 #pragma once
 
 #include <memory>
-#include <set>
 #include <functional>
 
 #include "Match.h"
@@ -87,18 +86,18 @@ public:
     return early_ender.empty();
   }
 
-  Match * early()
+  Match * early() const
   {
     return !early_ender.empty() ? *early_ender.begin() : *full.begin();
   }
   
-  Match * late()
+  Match * late() const
   {
     return !late_starter.empty() ? *late_starter.begin() : *full.begin();
   }
 
   // We suppose that m \in this
-  bool is_early_or_late(Match* m)
+  bool is_early_or_late(const Match* m) const
   {
     return only_full()
       || early()->projected_end(t)==m->projected_end(t)
