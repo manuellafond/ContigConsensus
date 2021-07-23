@@ -10,12 +10,12 @@
 
 struct data {
   unsigned nb_selected_zero;
-  vector<vector<int>> mat;
+  vector<vector<pair<int, const Match*>>> mat;
   vector<int> selected_zero_r, selected_zero_c, zero_prime_r, zero_prime_c;
   vector<bool> mark_r, mark_c;
 
   data(int max_value,size_t size ) : nb_selected_zero(0),
-				     mat(size, vector<int>(size,max_value)),
+				     mat(size, vector<pair<int,const Match*>>(size,make_pair(max_value, nullptr))),
 				     selected_zero_r(size,-1), selected_zero_c(size,-1),
 				     zero_prime_r(size,-1), zero_prime_c(size,-1),
 				     mark_r(size,false), mark_c(size,false) {}
@@ -43,7 +43,7 @@ struct data {
 	if(selected_zero_r[i]==j)
 	  cout <<"|";
 	else cout << " ";
-	cout << mat[i][j];
+	cout << mat[i][j].first;
 	if(selected_zero_r[i]==j)
 	  cout <<"|";
 	else if(zero_prime_r[i]==j)
@@ -68,7 +68,7 @@ bool select_zero(data &d)
     if(d.selected_zero_r[i]!=-1)
       continue;
     for(int j=0; j<d.mat.size();++j)
-      if(d.mat[i][j]==0 && d.selected_zero_c[j]==-1){
+      if(d.mat[i][j].first==0 && d.selected_zero_c[j]==-1){
 	d.selected_zero_r[i]=j;
 	d.selected_zero_c[j]=i;
 	nb_zero++;
@@ -120,7 +120,6 @@ void augment(data &d,int i, int j)
 
 bool prime(data &d)
 {
-  // cout << "prime\n";
   for(int i=0;i<d.mat.size();++i){
     if(d.selected_zero_c[i]!=-1)
       d.mark_c[i]=true;
@@ -128,15 +127,12 @@ bool prime(data &d)
       d.mark_r[i]=false;
   }
 
-  //d.display();
-
-  
   bool unmarked_zero = false;
   while(!unmarked_zero){
     unmarked_zero=true;
   for(int i=0; i<d.mat.size();++i)
     for(int j =0; j<d.mat.size();++j){
-      if (d.mat[i][j] == 0 && !d.mark_r[i] && !d.mark_c[j]) {
+      if (d.mat[i][j].first == 0 && !d.mark_r[i] && !d.mark_c[j]) {
 	unmarked_zero=false;
 	
         d.zero_prime_r[i]=j;
@@ -152,8 +148,6 @@ bool prime(data &d)
       }
     }
   }
-  //  cout << "fin prime\n";
-  //d.display();
   return true;
 }
 
@@ -164,7 +158,7 @@ void substract_min(data &d)
     if(d.mark_r[i]) continue;
     for (int j = 0; j < d.mat.size(); ++j) {
       if(d.mark_c[j]) continue;
-      min_tmp=min(min_tmp,d.mat[i][j]);
+      min_tmp=min(min_tmp,d.mat[i][j].first);
     }
   }
 
@@ -173,16 +167,16 @@ void substract_min(data &d)
   for (int i = 0; i < d.mat.size(); ++i) {
     for (int j = 0; j < d.mat.size(); ++j) {
       if(d.mark_r[i])
-	d.mat[i][j]+=min_tmp;
+	d.mat[i][j].first+=min_tmp;
       if(!d.mark_c[j])
-	d.mat[i][j]-=min_tmp;
+	d.mat[i][j].first-=min_tmp;
     }
   }
 
 }
 
 
-std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, Match::MM_map& matches, int max_value, unsigned &score)
+std::vector<const Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, const Match::MM_map& matches, int max_value, unsigned &score)
 {
 
   #if DEBUG_HUNG
@@ -195,37 +189,41 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, Match::M
     cout << t << " ";
   cout <<endl;
   #endif
-  
+
+
   data d(max_value,max(S.size(),T.size()));
 
-  for(int i = 0; i<S.size();++i)
-    for (int j = 0; j < T.size(); ++j) {
+  
+  size_t i=0;
+  for(const Contig &s : S){
+    size_t j=0;
+    for(const Contig &t : T) {
       try {
-        d.mat[i][j] -= matches.at(&S[i]).at(&T[j])->score;
+	d.mat[i][j].first -= matches.at(&s).at(&t)->score;
+	d.mat[i][j].second = matches.at(&s).at(&t);
+
       } catch (out_of_range) {
-	d.mat[i][j] = 0;
+	//        d.mat[i][j].first = 0;
       }
+      ++j;
     }
-  
-  
+    ++i;
+  }
   for (int i = 0; i < d.mat.size(); ++i) {
-    int min_tmp=INT_MAX;
+    int min_tmp= INT_MAX;
     for (int j = 0; j < d.mat.size(); ++j)
-      min_tmp=min(min_tmp,d.mat[i][j]);
+      min_tmp=min(min_tmp,d.mat[i][j].first);
     for (int j = 0; j < d.mat.size(); ++j)
-      d.mat[i][j]-=min_tmp;
+      d.mat[i][j].first-=min_tmp;
   }
 
   for (int j = 0; j < d.mat.size(); ++j) {
     int min_tmp=INT_MAX;
     for (int i = 0; i < d.mat.size(); ++i)
-      min_tmp=min(min_tmp,d.mat[i][j]);
+      min_tmp=min(min_tmp,d.mat[i][j].first);
     for (int i = 0; i < d.mat.size(); ++i)
-      d.mat[i][j]-=min_tmp;
+      d.mat[i][j].first-=min_tmp;
   }
-
-  //  d.display();
-
   while (!select_zero(d)) {
     if (prime(d))
       substract_min(d);
@@ -252,17 +250,20 @@ std::vector<Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, Match::M
       }
   }
 #endif
+
   
-  vector<Match*> selected_matches;
-  for (int i = 0; i < d.mat.size(); ++i)
-    if (i < S.size() && d.selected_zero_r[i] < T.size()) {
-      try {
-        if (matches.at(&S[i]).at(&T[d.selected_zero_r[i]])->score != 0) {
-          selected_matches.push_back(matches.at(&S[i]).at(&T[d.selected_zero_r[i]]));
-	  score+=matches.at(&S[i]).at(&T[d.selected_zero_r[i]])->score;
+  vector<const Match*> selected_matches;
+  for (size_t i = 0; i < d.mat.size(); ++i)
+        if (d.mat[i][d.selected_zero_r[i]].second!= nullptr) {
+	  selected_matches.push_back(d.mat[i][d.selected_zero_r[i]].second);
+	  score+=d.mat[i][d.selected_zero_r[i]].second->score;
         }
-      }
-      catch (out_of_range) {}
-    }
+      
+    
+  cout << "size:" << selected_matches.size() << endl;
   return selected_matches;
 }
+
+
+
+

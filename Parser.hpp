@@ -4,15 +4,15 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <set>
+#include <unordered_set>
+#include <vector>
 
 #include "Match.h"
 
 #define DEBUG false
 
 using namespace std;
-
-
-
 
 vector<Contig> parseFile(const char* fileName, int t)
 {
@@ -56,7 +56,55 @@ vector<Contig> parseFile(const char* fileName, int t)
 	return contigs;
 }
 
-void output(const char * fileName, const char * fileTName, const char * fileSName, vector<Match*>& matches)
+
+void parseMatches(const char * fileName, AssemblySet & S, AssemblySet & T, vector<Match> & matches)
+{
+  ifstream file(fileName);
+  if(!file) {
+      cout << "Error: could not open " << fileName << endl;
+      exit(EXIT_FAILURE);
+  }
+  size_t score, startS, endS, lengthS, startT, endT, lengthT;
+  string nameS, nameT;
+  while (file >> score) {
+    file >> nameS;
+    file >> startS;
+    file >> endS;
+    file >> lengthS;
+    file >> nameT;
+    file >> startT;
+    file >> endT;
+    file >> lengthT;
+    const Contig * s = &(*S.emplace(false, move(nameS), lengthS).first);
+    const Contig * t = &(*T.emplace(false, move(nameT), lengthT).first);
+
+
+    // modify the match length so that it is a suffix/prefix match
+    size_t resize_l = min({startS,endS,startT,endT}),
+      resize_r = min({lengthS-startS,lengthS-endS,lengthT-startT,lengthT-endT});
+    
+    if(startS<endS){
+      startS-=resize_l;
+      endS+=resize_r;
+    } else{
+      startS+=resize_r;
+      endS-=resize_l;
+    }
+
+    if(startT<endT){
+      startT-=resize_l;
+      endT+=resize_r;
+    } else{
+      startT+=resize_r;
+      endT-=resize_l;
+    }
+
+    matches.emplace_back(s,t,startS,endS,startT,endT,score);
+  }
+  cout << "Size: " << S.size() << " " << T.size() << " " << matches.size() <<  endl;
+}
+
+void output(const char * fileName, vector<const Match*>& matches)
 {
 
   ofstream file(fileName);
@@ -64,25 +112,18 @@ void output(const char * fileName, const char * fileTName, const char * fileSNam
     cout << "Error: could not open " << fileName << endl;
     exit(EXIT_FAILURE);
   }
-  file << "#" << fileTName << " vs " << fileSName << endl;
+  //  file << "#" << fileTName << " vs " << fileSName << endl;
 
   for(size_t i = 0; i<matches.size(); ++i){
     file << "#Match" << i+1<<"-score-" << matches[i]->score<<endl;
     for(unsigned t = 0; t<=1; ++t){
-      file << "#" << (t==0 ? fileTName : fileSName) << endl;
+      //file << "#" << (t==0 ? fileTName : fileSName) << endl;
       file <<">" << matches[i]->contig(t)->getName() << ": " 
-	   << matches[i]->start(t) << " " << matches[i]->end(t) ;
-      
-      for (size_t x = 0; x < matches[i]->length; ++x) {
-	if (x % 80 == 0) 
-	  file << endl;
-	if((char)matches[i]->contig(t)->at(matches[i]->start(t) + x, matches[i]->is_reverse(t))=='\n')
-	  cout << "c";
-	file << (char)matches[i]->contig(t)->at(matches[i]->start(t) + x, matches[i]->is_reverse(t));
-      }
-      file << endl <<endl;
+	   << matches[i]->start(t) << " " << matches[i]->end(t) 
+	    <<endl;
 
     }
+    file << endl;
   }
 }
 

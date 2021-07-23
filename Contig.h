@@ -1,6 +1,7 @@
 #pragma once
 
 #include <iostream>
+#include <set>
 #include <vector>
 
 
@@ -11,22 +12,24 @@ class Contig
   friend ostream& operator<<(ostream&, const Contig&);
 private:
   vector<unsigned> str;
+  const size_t contig_size;
   const string name;
 		
 public:
 
-  // indicates to which set of contigs its belongs
-  const unsigned t; 
+  // indicates if this contig belongs to the set T
+  const bool t;
+
   
+  Contig(bool t, string &&name,size_t size=0) : t(t), name(move(name)), contig_size(size) {}
 
-  Contig(unsigned t, string &&name,size_t size=0) : t(t), name(move(name))
+  Contig(vector<unsigned>&& arr, string &&name, bool t) : str(move(arr)), contig_size(arr.size()), name(move(name)), t(t) {}
+
+  bool operator<(const Contig &c) const
   {
-    str.resize(size);
+    return name<c.name;
   }
-
-  Contig(vector<unsigned>&& arr, string &&name, unsigned t) : str(move(arr)), name(move(name)), t(t) {}
-
-
+  
   void resize(size_t dim) 
   {
     str.resize(dim);
@@ -52,15 +55,15 @@ public:
     }*/
 
 
-  size_t size()
+  size_t size() const
   {
-    return str.size();
+    return contig_size;
   }
 
 
 
 };
-typedef vector<Contig> AssemblySet;
+typedef set<Contig> AssemblySet;
 
 
 ostream &operator<<(ostream& os, const Contig& contig)

@@ -24,9 +24,9 @@ class MatchesPerContig
       m1<m2 : m1->projected_start(t) > m2->projected_start(t);
   }
  
-  set<Match*,std::function<bool(const Match*, const Match*)>> early_ender;
-  set<Match*,std::function<bool(const Match*, const Match*)>> late_starter;
-  set<Match*> full;
+  set<const Match*,std::function<bool(const Match*, const Match*)>> early_ender;
+  set<const Match*,std::function<bool(const Match*, const Match*)>> late_starter;
+  set<const Match*> full;
 
 public:
   MatchesPerContig(int t) : t(t),
@@ -43,7 +43,7 @@ public:
   }
 
   // return true the first time a non-full interval is inserted
-  bool add(Match *m){
+  bool add(const Match *m){
 
 
     if (!m->is_full(t)) {
@@ -57,7 +57,7 @@ public:
 
 
   // return true the first time all non-full interval have been deleted
-  bool remove(Match *m)
+  bool remove(const Match *m)
   {
     
     if(!this->contains(m)) {
@@ -76,7 +76,7 @@ public:
     return false;
   }
 
-  bool contains(Match * m) // for debug purpose
+  bool contains(const Match * m) // for debug purpose
   {
     return early_ender.count(m) || late_starter.count(m) || full.count(m);
   }
@@ -86,12 +86,12 @@ public:
     return early_ender.empty();
   }
 
-  Match * early() const
+  const Match * early() const
   {
     return !early_ender.empty() ? *early_ender.begin() : *full.begin();
   }
   
-  Match * late() const
+  const Match * late() const
   {
     return !late_starter.empty() ? *late_starter.begin() : *full.begin();
   }
@@ -108,15 +108,15 @@ public:
   // for debug
   void display() const
   {
-    cout << "Early\n";
-    for(auto m : early_ender)
-      cout << *m;
-    cout << "Late\n";
-    for(auto m : late_starter)
-      cout << *m;
-    cout << "Full\n";
-    for(auto m : full)
-      cout <<*m;
+    // cout << "Early\n";
+    // for(auto m : early_ender)
+    //   cout << *m;
+    // cout << "Late\n";
+    // for(auto m : late_starter)
+    //   cout << *m;
+    // cout << "Full\n";
+    // for(auto m : full)
+    //   cout <<*m;
 
   }
   // for debug
