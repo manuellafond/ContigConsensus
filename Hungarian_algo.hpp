@@ -129,7 +129,7 @@ bool prime(data &d)
 
   bool unmarked_zero = false;
   while(!unmarked_zero){
-    unmarked_zero=true;
+    unmarked_zero=true; 
   for(int i=0; i<d.mat.size();++i)
     for(int j =0; j<d.mat.size();++j){
       if (d.mat[i][j].first == 0 && !d.mark_r[i] && !d.mark_c[j]) {
@@ -176,31 +176,31 @@ void substract_min(data &d)
 }
 
 
-std::vector<const Match*> hungarian_algorithm(AssemblySet &T, AssemblySet &S, const Match::MM_map& matches, int max_value, unsigned &score)
+std::vector<const Match*> hungarian_algorithm(AssemblySet & assembly_sets, const Match::MM_map& matches, int max_value, unsigned &score, unsigned set_id1=1, unsigned set_id2=2)
 {
 
   #if DEBUG_HUNG
   cout << "S: ";
-  for(auto &s : S)
+  for(auto &s : assembly_sets[set_id1])
     cout << s << " ";
   cout <<endl;
   cout << "T: ";
-  for(auto &t : T)
+  for(auto &t : assembly_sets[set_id2])
     cout << t << " ";
   cout <<endl;
   #endif
 
 
-  data d(max_value,max(S.size(),T.size()));
+  data d(max_value,max(assembly_sets[set_id1].size(),assembly_sets[set_id2].size()));
 
   
   size_t i=0;
-  for(const Contig &s : S){
+  for(const auto &s : assembly_sets[set_id1]){
     size_t j=0;
-    for(const Contig &t : T) {
+    for(const auto &t : assembly_sets[set_id2]) {
       try {
-	d.mat[i][j].first -= matches.at(&s).at(&t)->score;
-	d.mat[i][j].second = matches.at(&s).at(&t);
+	d.mat[i][j].first -= matches.at(s.get()).at(t.get())->score;
+	d.mat[i][j].second = matches.at(s.get()).at(t.get());
 
       } catch (out_of_range) {
 	//        d.mat[i][j].first = 0;

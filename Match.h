@@ -8,8 +8,6 @@
 #include "CostMap.hpp"
 
 
-
-
 using namespace std;
 
 
@@ -39,7 +37,7 @@ struct Match
   }
 
   struct Mcontig {
-    const Contig* contig;
+    Contig* contig;
     size_t start, end;
   };
 
@@ -49,8 +47,9 @@ struct Match
   unsigned score;
 
   Match() : score(0) {} // empty match
-  Match(const Contig *c1, const Contig *c2, size_t start1, size_t end1, size_t start2, size_t end2, unsigned score)
+  Match(Contig *c1, Contig *c2, size_t start1, size_t end1, size_t start2, size_t end2, unsigned score)
     : contigs{{{c1, start1, end1},{c2,start2, end2}}}, score(score) {}
+
 
   bool is_of_type(unsigned t) const
   {
@@ -58,12 +57,13 @@ struct Match
       || (projected_start((t+1)%2)==0 && projected_end((t+1)%2)==contig((t+1)%2)->size());
   }
 
-  const Contig * contig(unsigned t)  const
+  Contig * contig(unsigned t)  const
   {
     return contigs[t].contig;
   }
 
-  const Contig * contig(const Contig * c) const
+  // TODO vérifier que c'est bien le bon match ?
+  Contig * contig(const Contig * c) const
   {
     return c==contigs[0].contig ? contigs[1].contig : contigs[0].contig;
   }
@@ -80,7 +80,7 @@ struct Match
 
   size_t length(unsigned t) const
   {
-    return is_reverse(t) ? start(t) - end(t) : end(t) - start(t);
+    return (is_reverse(t) ? start(t) - end(t) : end(t) - start(t))+1;
   }
 
   bool is_reverse(unsigned t) const
@@ -131,7 +131,23 @@ struct Match
     return contig((unsigned)0)==c || contig(1)==c;
   }
 
+  // for debug
+  void display_contig_names() const
+  {
+    cout << this->contigs[0].contig->getName()
+	 << "(" << contigs[0].start <<"," << contigs[0].end<< ")"
+	 << "|" << this->contigs[1].contig->getName()
+	 << "(" << contigs[1].start <<"," << contigs[1].end<< ")"
+	 << endl;
+  }
+
 };
+typedef map<unsigned, map<unsigned,vector<Match>>> MatchMatrix;
+
+vector<Match>& getMatchSet(MatchMatrix &m,unsigned i,unsigned j){
+  return j<i ? m[j][i] : m[i][j];
+}
+
 
 // ostream &operator<<(ostream& os, const Match& m)
 // {

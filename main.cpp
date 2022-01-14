@@ -1,9 +1,11 @@
 #include <iostream>
 #include <stdexcept>
+#include <string>
 #include <time.h>
 #include <unistd.h>
 
 #include "Hungarian_algo.hpp"
+#include "Match.h"
 #include "Parser.hpp"
 #include "MatchesPerContig.hpp"
 
@@ -51,7 +53,7 @@ queue<const Match*> construct_BEO(Match::SortedLengthSet& matches)
 	break;
       
 
-      if(IJ->projected_end(cJ->t)==cJ->size()-1){
+      if(IJ->projected_end(cJ->get_set_id())==cJ->size()-1){
 	cI=cJ; 
 	IJ= mpc.at(cI).late();
       }
@@ -157,11 +159,10 @@ vector<const Match*> greedy_maximum_matching(const Match::MM_map& matches, unsig
 
 
 
-vector<const Match*> algo(AssemblySet &T, AssemblySet &S, vector<Match> &all_matches)
+vector<const Match*> algo(AssemblySet &assembly_sets, vector<Match> &all_matches, unsigned id_set1=1, unsigned id_set2=2)
 {
   Match::MM_map max_matches;
   unsigned maximum_value=0;
-
 
 
   cout << "Compute Greedy" << endl;
@@ -231,6 +232,94 @@ vector<const Match*> algo(AssemblySet &T, AssemblySet &S, vector<Match> &all_mat
   return selected_matches_best;
 }
 
+void merge_match(vector<const Match *> &selected_matches,
+                 AssemblySet &assembly_sets, MatchMatrix& matches, unsigned new_set_id,unsigned set_id1 = 1,
+                 unsigned set_id2 = 2)
+{
+  vector<string> trash;
+  // for debug;
+  size_t n = 0;
+
+  auto &new_set =assembly_sets[new_set_id];
+
+  map<Contig*,Contig*> m_contig;
+
+  for(auto &m : selected_matches){
+    cout << "merge " << m->contig((unsigned)0)->getName() << " with " << m->contig(1)->getName() << endl;
+    Contig * c1 = m->contig((unsigned)0);
+    while(m_contig.find(c1)!=m_contig.end())
+      c1=m_contig[c1];
+    
+    Contig * c2 = m->contig(1);
+    while(m_contig.find(c2)!=m_contig.end())
+      c2=m_contig[c2];
+
+    cout << "merge " << c1->getName() << " with " << c2->getName() << endl;
+    Contig * s = c1->size()==m->length((unsigned)0) ? //otherwise the shift calculation is wrong
+      new_set.emplace(move(make_unique<Contig>(move(*c2),move(*c1),
+					       m->is_reverse((unsigned )0)||m->is_reverse(1),
+					       m->length(1),to_string(n),
+					       new_set_id))).first->get() :
+      new_set.emplace(move(make_unique<Contig>(move(*c1),move(*c2),
+					       m->is_reverse((unsigned )0)||m->is_reverse(1),
+					       m->length(1),to_string(n),new_set_id))).first->get();
+    n++;
+    m_contig[c1]=s;
+    m_contig[c2]=s;
+    cout << s->size() << endl;
+    if(c1->get_set_id()==new_set_id)
+      trash.push_back(c1->getName());
+    if(c2->get_set_id()==new_set_id)
+      trash.push_back(c2->getName());
+
+
+    // // update other matches
+    // vector<Contig*> prefix_or_full_c1, suffix_c1, suffix_or_full_c2, prefix_c2;
+    
+
+
+    // // update other matches
+    // for(auto &a : matches){
+    //   for(auto &b : a.second){
+    // 	if(b.first==new_set_id) continue;
+    // 	unsigned other_set_id;
+    // 	if(a.first==set_id1 || a.first != set_id2)
+    // 	  other_set_id=b.first;
+    // 	else if  (b.first==set_id1 || b.first == set_id2)
+    // 	  other_set_id=a.first;
+    // 	else continue;
+    // 	auto &v = b.second;
+    // 	for(auto &m_c1 : v){
+    // 	  if(!m_c1.contains(c1)) continue;
+	  
+    // 	  const Contig *c3= m_c1.contig(c1);
+    // 	  for(auto &m_c2 :v){
+    // 	    if(!m_c2.contains(c2) || !m_c2.contains(c3)) continue;
+	    
+    // 	  }
+    // 	}
+
+    //   }
+    // }
+
+
+    
+  }
+
+  for(auto it = new_set.begin(); it!=new_set.end();){
+    if(m_contig.find(it->get())!=m_contig.end()){
+      // remove intermediate contigs
+      it=new_set.erase(it);
+    } else ++it;
+    
+  }
+
+  assembly_sets.erase(set_id1);
+  assembly_sets.erase(set_id2);
+  
+  
+}
+
 
 
 array<string, 2> treatProgrammeEntry(int argc, char * argv[])
@@ -271,14 +360,19 @@ array<string, 2> treatProgrammeEntry(int argc, char * argv[])
 
 int main(int argc, char *argv[])
 {
-  AssemblySet S, T;
-  vector<Match> matches;
+  AssemblySet assembly_sets;
+  MatchMatrix matches;
 
   auto options = treatProgrammeEntry(argc, argv);
-  parseMatches(options[0].c_str(), S, T, matches);
+  parseMatches(options[0].c_str(), assembly_sets, matches);
+  
+  vector<const Match*> result =  algo(assembly_sets, matches[1][2]);
 
-  vector<const Match*> result =  algo(S, T, matches);
+  unsigned new_id_set=3;
+  merge_match(result, assembly_sets,matches,new_id_set);
 
+
+  exit(EXIT_SUCCESS);
   output(options[1].c_str(),result);
 }
 

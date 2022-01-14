@@ -4,17 +4,21 @@
 #include <iostream>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <set>
+#include <stdexcept>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "Contig.h"
 #include "Match.h"
 
 #define DEBUG false
 
 using namespace std;
 
-vector<Contig> parseFile(const char* fileName, int t)
+vector<Contig> parseFile(const char* fileName, unsigned id_set, AssemblySet &assembly_sets)
 {
 	ifstream file(fileName);
 	if(!file)
@@ -57,16 +61,21 @@ vector<Contig> parseFile(const char* fileName, int t)
 }
 
 
-void parseMatches(const char * fileName, AssemblySet & S, AssemblySet & T, vector<Match> & matches)
+void parseMatches(const char * fileName, AssemblySet & assembly_sets, MatchMatrix & matches, unsigned id_set1=1, unsigned id_set2=2)
 {
   ifstream file(fileName);
   if(!file) {
       cout << "Error: could not open " << fileName << endl;
       exit(EXIT_FAILURE);
   }
+
+  // insert keys
+  auto &v = matches[id_set1][id_set2];
+  
   size_t score, startS, endS, lengthS, startT, endT, lengthT;
   string nameS, nameT;
   while (file >> score) {
+
     file >> nameS;
     file >> startS;
     file >> endS;
@@ -75,33 +84,50 @@ void parseMatches(const char * fileName, AssemblySet & S, AssemblySet & T, vecto
     file >> startT;
     file >> endT;
     file >> lengthT;
-    const Contig * s = &(*S.emplace(false, move(nameS), lengthS).first);
-    const Contig * t = &(*T.emplace(false, move(nameT), lengthT).first);
 
+    Contig *s, *t;
+    auto a = assembly_sets[id_set1].find(nameS);
+    if(a!=assembly_sets[id_set1].end())
+      s=a->get();
+    else s=assembly_sets[id_set1].insert(move(make_unique<Contig>(id_set1,move(nameS),lengthS))).first->get();
 
-    // modify the match length so that it is a suffix/prefix match
-    size_t resize_l = min({startS,endS,startT,endT}),
-      resize_r = min({lengthS-startS,lengthS-endS,lengthT-startT,lengthT-endT});
+    a = assembly_sets[id_set2].find(nameT);
+    if(a!=assembly_sets[id_set2].end())
+      t=a->get();
+    else t=assembly_sets[id_set2].emplace(make_unique<Contig>(id_set2,move(nameT),lengthT)).first->get();
+
     
-    if(startS<endS){
-      startS-=resize_l;
-      endS+=resize_r;
-    } else{
-      startS+=resize_r;
-      endS-=resize_l;
-    }
+    // // modify the match length so that it is a suffix/prefix match
+    // size_t resize_l = min({startS,endS,startT,endT})-1,
+    //   resize_r = min({lengthS-startS,lengthS-endS,lengthT-startT,lengthT-endT});
+    
+    // if(startS<endS){
+    //   startS-=resize_l;
+    //   endS+=resize_r;
+    // } else{
+    //   startS+=resize_r;
+    //   endS-=resize_l;
+    // }
 
-    if(startT<endT){
-      startT-=resize_l;
-      endT+=resize_r;
-    } else{
-      startT+=resize_r;
-      endT-=resize_l;
-    }
+    // if(startT<endT){
+    //   startT-=resize_l;
+    //   endT+=resize_r;
+    // } else{
+    //   startT+=resize_r;
+    //   endT-=resize_l;
+    // }
 
-    matches.emplace_back(s,t,startS,endS,startT,endT,score);
+    v.emplace_back(s,t,startS,endS,startT,endT,score);
+    
+    
   }
-  cout << "Size: " << S.size() << " " << T.size() << " " << matches.size() <<  endl;
+
+  cout << "test\n";
+  for(auto &m : v)
+    m.display_contig_names();
+  
+  cout << "Size: " << assembly_sets[id_set1].size() << " " << assembly_sets[id_set2].size() << " " << v.size() <<  endl;
+
 }
 
 void output(const char * fileName, vector<const Match*>& matches)
