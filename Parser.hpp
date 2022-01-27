@@ -226,6 +226,7 @@ void output_contig(const char* fileName, AssemblySet & assembly_sets)
     cout << "Error: could not open " << fileName << endl;
     exit(EXIT_FAILURE);
   }
+  cout << "Writing fasta result in " << fileName << endl;
   for(auto &c : contigs){
     file << *c;
   }
@@ -244,6 +245,7 @@ void output_contig_ordering(const char * fileName, AssemblySet & assembly_sets, 
     cout << "Error: could not open " << fileName << endl;
     exit(EXIT_FAILURE);
   }
+  cout << "Writing ordering result in " << fileName << endl;
   for(auto &c : contigs){
     file << c->getName() << ":"<<endl;
     for(auto & C : c->getComponent()){

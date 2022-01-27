@@ -71,8 +71,6 @@ int main(int argc, char *argv[])
 
   merge_algorithm(assembly_sets,matches,ids);
 
-  
-  
   output_contig(options[2].c_str(),assembly_sets);
   output_contig_ordering(options[3].c_str(),assembly_sets, ids);
   

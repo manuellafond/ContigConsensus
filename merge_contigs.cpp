@@ -309,13 +309,5 @@ void merge_algorithm(AssemblySet &assembly_sets, MatchMatrix &matches, map<strin
       }
       new_id++;
   }
-  
- 
-    for(auto &c : assembly_sets[new_id-1])
-      c->display_sequence();
-
-
-  
-  
-
+   
 }
