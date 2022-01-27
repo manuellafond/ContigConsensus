@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <map>
 #include <set>
+#include <tuple>
 #include <vector>
 
 #include "Contig.h"
@@ -49,6 +50,54 @@ struct Match
   Match() : score(0) {} // empty match
   Match(Contig *c1, Contig *c2, size_t start1, size_t end1, size_t start2, size_t end2, unsigned score)
     : contigs{{{c1, start1, end1},{c2,start2, end2}}}, score(score) {}
+
+  Match(Contig *c1, Contig *c2, size_t initial_start_c1, bool is_c1_reversed, size_t initial_start_c2, bool is_c2_reversed) : score(0)
+  {
+
+    // cout <<"Match with: " << *c1 << " and " << *c2 << endl;
+    // cout <<"Parameters: " << initial_start_c1 << "|" << is_c1_reversed << "|" << initial_start_c2 << "|" << is_c2_reversed << endl;
+    size_t tail_c1=initial_start_c1, head_c1 = initial_start_c1,
+      tail_c2=initial_start_c2, head_c2=initial_start_c2;
+
+    do{
+      // cout << "tail_c1:" << tail_c1 << ":"<< (char)c1->getNuc(tail_c1)
+      // 	   << " tail_c2:" << tail_c2 << ":"<< (char)c2->getNuc(tail_c2)<< endl;
+      score+=c1->getNuc(tail_c1)==c2->getNuc(tail_c2);
+      tail_c1 = is_c1_reversed ? tail_c1-1 : tail_c1+1;
+      tail_c2 = is_c2_reversed ? tail_c2-1 : tail_c2+1;
+    }while(tail_c1<c1->size() && tail_c2<c2->size());
+
+    tail_c1 = is_c1_reversed ? tail_c1+1 : tail_c1-1;
+    tail_c2 = is_c2_reversed ? tail_c2+1 : tail_c2-1;
+
+
+    head_c1 = is_c1_reversed ? head_c1+1 : head_c1-1;
+    head_c2 = is_c2_reversed ? head_c2+1 : head_c2-1;
+    while(head_c1<c1->size() && head_c2<c2->size()){
+      // cout << "head_c1:" << head_c1 << ":"<< (char)c1->getNuc(head_c1)
+      // 	   << " head_c2:" << head_c2 << ":"<< (char)c2->getNuc(head_c2)<< endl;
+
+      score+=c1->getNuc(head_c1)==c2->getNuc(head_c2);
+      head_c1 = is_c1_reversed ? head_c1+1 : head_c1-1;
+      head_c2 = is_c2_reversed ? head_c2+1 : head_c2-1;
+    }
+    head_c1 = is_c1_reversed ? head_c1-1 : head_c1+1;
+    head_c2 = is_c2_reversed ? head_c2-1 : head_c2+1;
+
+
+    unsigned a = c1->get_set_id()<c2->get_set_id() ? 0 : 1;
+    unsigned b = c1->get_set_id()<c2->get_set_id() ? 1 : 0;
+
+    contigs[a].contig=c1;
+    contigs[a].start=head_c1;
+    contigs[a].end=tail_c1;
+      
+    contigs[b].contig=c2;
+    contigs[b].start=head_c2;
+    contigs[b].end=tail_c2;
+
+    //      display_contig_names();
+  }
 
 
   bool is_of_type(unsigned t) const
@@ -104,12 +153,18 @@ struct Match
     return max(start(t),end(t));
   }
 
+  // start of the contig if we reverse the direction of the contig
+  size_t relative_start(unsigned t) const
+  {
+    return contigs[t].contig->size()-1-contigs[t].start;
+  }
+
   bool intersect(const Match * m) const
   {
     if(this->contig((unsigned)0)==m->contig((unsigned)0) && this->contig(1)==m->contig(1))
       return true;
     
-    for(unsigned i =0; i <=1; i++){
+    for(size_t i =0; i <=1; i++){
       if (this->contig(i) == m->contig(i) &&
 	  ( this->is_reverse(i)!= m->is_reverse(i) ||
 	    (this->start(i) >= m->start(i) && this->start(i) <= m->end(i)) ||
@@ -138,15 +193,12 @@ struct Match
 	 << "(" << contigs[0].start <<"," << contigs[0].end<< ")"
 	 << "|" << this->contigs[1].contig->getName()
 	 << "(" << contigs[1].start <<"," << contigs[1].end<< ")"
+	 << "-> " << score
 	 << endl;
   }
 
 };
-typedef map<unsigned, map<unsigned,vector<Match>>> MatchMatrix;
-
-vector<Match>& getMatchSet(MatchMatrix &m,unsigned i,unsigned j){
-  return j<i ? m[j][i] : m[i][j];
-}
+typedef map<unsigned, map<unsigned,tuple<vector<Match>,unsigned,vector<const Match*>>>> MatchMatrix;
 
 
 // ostream &operator<<(ostream& os, const Match& m)

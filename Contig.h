@@ -9,6 +9,7 @@
 #include <tuple>
 #include <vector>
 
+#include "Nucleotide.h"
 
 using namespace std;
 
@@ -17,59 +18,87 @@ class Contig
   friend ostream& operator<<(ostream&, const Contig&);
 private:
 
-  const size_t contig_size;
+  vector<Nuc> sequence;
   const string name;
   const unsigned set_id;
-  
+  size_t sequence_size;
+
+
   struct Component{
-    size_t contig_size;
     string name;
     unsigned set_id;
     bool is_reversed;
-    size_t shift;
+    size_t shift, contig_size;
 
-    Component(size_t contig_size, string name, unsigned set_id, size_t shift,bool is_reversed=false) : contig_size(contig_size), name(name), set_id(set_id), is_reversed(is_reversed), shift(shift) {}
+    Component(size_t contig_size,string name, unsigned set_id, size_t shift,bool is_reversed=false) :  name(name), set_id(set_id), is_reversed(is_reversed), shift(shift), contig_size(contig_size) {}
 
     //for debug
     void display()
     {
-      cout << "{" << contig_size << "," << name << "," << set_id << "," << is_reversed << "," << shift << "}" << endl;
+      cout << "{" << name << "," << set_id << "," << is_reversed << "," << shift << "}" << endl;
     }
   };
   vector<Component> component_contigs;
-  
-  
-  vector<unsigned> str;
 
+  
 public:
-
   
-  
-  Contig(unsigned set_id, string &&name,size_t size=0) : contig_size(size), name(name), set_id(set_id), component_contigs{{Component(size,name,set_id,0)}}  {}
 
-  // merge two contigs
-  Contig(Contig && c1, Contig && c2, bool is_c2_reversed, size_t overlapping_size, string name, unsigned set_id) : contig_size(c1.size()+c2.size()-overlapping_size),name(name), set_id(set_id), component_contigs(move(c1.component_contigs))
+  Contig(unsigned set_id, string &&name,vector<Nuc> && sequence) : name(name), set_id(set_id), sequence(move(sequence)) {
+    sequence_size=this->sequence.size();
+    component_contigs.emplace_back(sequence_size,name,set_id,0);
+  }
+
+    // merge two contigs
+  Contig(Contig && c1, Contig && c2, bool is_c1_reversed, bool is_c2_reversed, size_t overlapping_size, unsigned set_id) :  name(c1.name + "|" + c2.name), set_id(set_id), sequence_size(c1.size())
   {
-    size_t shift=c1.size()-overlapping_size;
-    if(is_c2_reversed){
-      for(size_t i=c2.component_contigs.size();i>0;--i){
-	auto & cc = c2.component_contigs[i-1];
-	cc.shift=shift+c2.size()-(cc.shift+cc.contig_size);
-	cc.is_reversed^=true;
-	component_contigs.push_back(move(cc));
-      }
-
+    if(!is_c1_reversed){
+      sequence=move(c1.sequence);
+      component_contigs = move(c1.component_contigs);
     }
     else {
-      for(size_t i=0;i<c2.component_contigs.size();++i){
-	c2.component_contigs[i].shift+=shift;
-	component_contigs.push_back(move(c2.component_contigs[i]));
-      }
+      for(unsigned i=c1.size();i>0;--i)
+	sequence.push_back(c1.sequence[i-1]);
+           for(auto &C : c1.component_contigs)
+	     component_contigs.emplace_back(C.contig_size,C.name,C.set_id,c1.sequence_size-1-C.shift,!C.is_reversed);
     }
-    sort(component_contigs.begin(),component_contigs.end(),[](const Component &c1, const Component &c2){return c1.shift<c2.shift;});
 
-    display_component();
+
+    unsigned shift=c1.size()-overlapping_size;
+    if(!is_c2_reversed)
+       for(auto &C : c2.component_contigs)
+	 component_contigs.emplace_back(C.contig_size,C.name,C.set_id,shift+C.shift,C.is_reversed);
+    else
+      for(auto &C : c2.component_contigs)
+	component_contigs.emplace_back(C.contig_size,C.name,C.set_id,shift+c2.sequence_size-1-C.shift,!C.is_reversed);
+
+    if(is_c2_reversed){
+      for(size_t i=0;i<overlapping_size;++i){
+	if(c2.size()<=i) return;
+	sequence[sequence.size()-overlapping_size+i]+=c2.sequence[c2.sequence.size()-1-i];
+	// cout << sequence.size()-overlapping_size+i << "|"  << c2.sequence.size()-1-i  <<":";
+	// display_sequence();
+      }
+      for(size_t i=overlapping_size;i<c2.sequence.size();++i)
+	sequence.push_back(move(c2.sequence[c2.sequence.size()-1-i]));
+
+    }
+    else { 
+      for(size_t i=0;i<overlapping_size;++i){
+	if(c2.size()<=i) return;
+	sequence[sequence.size()-overlapping_size+i]+=c2.sequence[i];
+	// cout << i << "|"  << sequence.size()-overlapping_size+i <<":";
+	// display_sequence();
+      }
+      
+      for(size_t i=overlapping_size;i<c2.sequence.size();++i)
+	sequence.push_back(move(c2.sequence[i]));
+      
+    }
+    sequence_size=sequence.size();
   }
+
+
 
   unsigned get_set_id() const
   {
@@ -81,10 +110,6 @@ public:
     return name<c.getName();
   }
   
-  void resize(size_t dim) 
-  {
-    str.resize(dim);
-  }
 
   const string & getName() const
   { 
@@ -92,26 +117,42 @@ public:
   } 
 
 
-  unsigned& at(size_t i, bool isReverse = false)
+  char at(size_t i, bool isReverse = false)
   {
     if (!isReverse)
-      return str[i];
+      return sequence[i];
     else
-      return str[str.size() - 1 - i];
+      return sequence[sequence.size() - 1 - i];
+  }
+
+  char getNuc(size_t i)
+  {
+    return sequence[i];
   }
 
 
   size_t size() const
   {
-    return contig_size;
+    return sequence_size;
   }
 
-  //for debug
-  void display_component() const
+  void display_sequence() const // for debug
+  {
+    for(auto &N : this->sequence)
+      cout << (char)N;
+    cout << endl;
+  }
+  void display_component() const // for debug
   {
     for(auto c : this->component_contigs)
       c.display();
   }
+
+  vector<Component>& getComponent() {
+    return component_contigs;
+  }
+  
+
 };
 
 bool operator<(const unique_ptr<Contig> &c, const string &s)
@@ -130,7 +171,9 @@ typedef map<unsigned, set<unique_ptr<Contig>,less<>>> AssemblySet;
 
 inline ostream &operator<<(ostream& os, const Contig& contig)
 {
-  for(int c : contig.str)
+  os << ">"<<contig.name << endl;
+  for(Nuc c : contig.sequence)
     os<<(char)c;
+  os << endl;
   return os;
 }
