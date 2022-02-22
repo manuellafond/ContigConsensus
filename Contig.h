@@ -1,11 +1,13 @@
 #pragma once
 
 #include <algorithm>
+#include <cassert>
 #include <cstddef>
 #include <iostream>
 #include <map>
 #include <memory>
 #include <set>
+#include <stdexcept>
 #include <tuple>
 #include <vector>
 
@@ -49,20 +51,26 @@ public:
     component_contigs.emplace_back(sequence_size,name,set_id,0);
   }
 
+  Contig(Contig && c, unsigned set_id) : name(c.name), set_id(set_id), sequence(c.sequence), component_contigs(c.component_contigs) {
+    //name(move(c.name)), set_id(set_id), sequence(move(c.sequence)), component_contigs(move(c.component_contigs)) {
+    sequence_size=this->sequence.size();
+  }
+
     // merge two contigs
-  Contig(Contig && c1, Contig && c2, bool is_c1_reversed, bool is_c2_reversed, size_t overlapping_size, unsigned set_id) :  name(c1.name + "|" + c2.name), set_id(set_id), sequence_size(c1.size())
+  Contig(Contig && c1, Contig && c2, bool is_c1_reversed, bool is_c2_reversed, size_t overlapping_size, unsigned set_id) :  name("("+ c1.name + "|" + c2.name +")"), set_id(set_id), sequence_size(c1.size())
   {
+
     if(!is_c1_reversed){
-      sequence=move(c1.sequence);
+      sequence = c1.sequence;//move(c1.sequence);
       component_contigs = move(c1.component_contigs);
     }
     else {
       for(unsigned i=c1.size();i>0;--i)
 	sequence.push_back(c1.sequence[i-1]);
-           for(auto &C : c1.component_contigs)
-	     component_contigs.emplace_back(C.contig_size,C.name,C.set_id,c1.sequence_size-1-C.shift,!C.is_reversed);
+      for(auto &C : c1.component_contigs)
+	component_contigs.emplace_back(C.contig_size,C.name,C.set_id,c1.sequence_size-1-C.shift,!C.is_reversed);
     }
-
+    
 
     unsigned shift=c1.size()-overlapping_size;
     if(!is_c2_reversed)
@@ -76,19 +84,16 @@ public:
       for(size_t i=0;i<overlapping_size;++i){
 	if(c2.size()<=i) return;
 	sequence[sequence.size()-overlapping_size+i]+=c2.sequence[c2.sequence.size()-1-i];
-	// cout << sequence.size()-overlapping_size+i << "|"  << c2.sequence.size()-1-i  <<":";
-	// display_sequence();
       }
       for(size_t i=overlapping_size;i<c2.sequence.size();++i)
-	sequence.push_back(move(c2.sequence[c2.sequence.size()-1-i]));
-
+	sequence.push_back(c2.sequence[c2.sequence.size()-1-i]);
     }
     else { 
       for(size_t i=0;i<overlapping_size;++i){
 	if(c2.size()<=i) return;
+	assert(i<c2.sequence.size());
+	assert(sequence.size()-overlapping_size+i>=0 && sequence.size()-overlapping_size+i<=sequence.size());
 	sequence[sequence.size()-overlapping_size+i]+=c2.sequence[i];
-	// cout << i << "|"  << sequence.size()-overlapping_size+i <<":";
-	// display_sequence();
       }
       
       for(size_t i=overlapping_size;i<c2.sequence.size();++i)
@@ -127,6 +132,7 @@ public:
 
   char getNuc(size_t i)
   {
+    assert(i<=sequence.size());
     return sequence[i];
   }
 
@@ -151,17 +157,23 @@ public:
   vector<Component>& getComponent() {
     return component_contigs;
   }
-  
-
 };
+
+
 
 bool operator<(const unique_ptr<Contig> &c, const string &s)
 {
   return c->getName() < s;
 }
+
 bool operator<(const string &s,const unique_ptr<Contig> &c)
 {
   return s< c->getName();
+}
+
+bool operator<(const unique_ptr<Contig> &c1, const unique_ptr<Contig> &c2)
+{
+  return c1->getName()< c2->getName();
 }
 
 typedef map<unsigned, set<unique_ptr<Contig>,less<>>> AssemblySet;
@@ -172,8 +184,15 @@ typedef map<unsigned, set<unique_ptr<Contig>,less<>>> AssemblySet;
 inline ostream &operator<<(ostream& os, const Contig& contig)
 {
   os << ">"<<contig.name << endl;
-  for(Nuc c : contig.sequence)
+  unsigned length=0;
+  for(Nuc c : contig.sequence){
     os<<(char)c;
+    length++;
+    if(length==79){
+      length=0;
+      os << "\n";
+    }
+  }
   os << endl;
   return os;
 }

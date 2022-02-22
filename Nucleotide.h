@@ -15,25 +15,29 @@ using namespace std;
     
     public:
     Nuc(char c) : Nuc()
-      {
+    {
 	*this=c; 
-      }
+    }
 
     void operator=(char c)
       {
 	switch (c) {
+	case 'N':
+	  for(unsigned i=0; i<4;++i)
+	    (*this)[i]++;
+	  break;
 	case 'A':
-	(*this)[0]++;
-	break;
+	  (*this)[0]++;
+	  break;
 	case 'T':
-	(*this)[1]++;
-	break;
+	  (*this)[1]++;
+	  break;
 	case 'C':
-	(*this)[2]++;
-	break;
+	  (*this)[2]++;
+	  break;
 	case 'G':
-	(*this)[3]++;
-	break;
+	  (*this)[3]++;
+	  break;
 	}
       }
 

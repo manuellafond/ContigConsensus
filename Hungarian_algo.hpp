@@ -8,13 +8,13 @@
 
 #define DEBUG_HUNG false
 
-struct data {
+struct data_hung {
   unsigned nb_selected_zero;
   vector<vector<pair<int, const Match*>>> mat;
   vector<int> selected_zero_r, selected_zero_c, zero_prime_r, zero_prime_c;
   vector<bool> mark_r, mark_c;
 
-  data(int max_value,size_t size ) : nb_selected_zero(0),
+  data_hung(int max_value,size_t size ) : nb_selected_zero(0),
 				     mat(size, vector<pair<int,const Match*>>(size,make_pair(max_value, nullptr))),
 				     selected_zero_r(size,-1), selected_zero_c(size,-1),
 				     zero_prime_r(size,-1), zero_prime_c(size,-1),
@@ -60,7 +60,7 @@ struct data {
 
 
 
-bool select_zero(data &d)
+bool select_zero(data_hung &d)
 {
   //d.display();
   unsigned nb_zero=0;
@@ -93,7 +93,7 @@ bool select_zero(data &d)
 }
 
 
-void augment(data &d,int i, int j)
+void augment(data_hung &d,int i, int j)
 {
   //  cout << "augment\n";
   // step 2'
@@ -118,7 +118,7 @@ void augment(data &d,int i, int j)
   d.nb_selected_zero++;
 }
 
-bool prime(data &d)
+bool prime(data_hung &d)
 {
   for(int i=0;i<d.mat.size();++i){
     if(d.selected_zero_c[i]!=-1)
@@ -151,7 +151,7 @@ bool prime(data &d)
   return true;
 }
 
-void substract_min(data &d)
+void substract_min(data_hung &d)
 {
   int min_tmp=INT_MAX;
   for (int i = 0; i < d.mat.size(); ++i) {
@@ -191,7 +191,7 @@ std::vector<const Match*> hungarian_algorithm(AssemblySet & assembly_sets, const
   #endif
 
 
-  data d(max_value,max(assembly_sets[set_id1].size(),assembly_sets[set_id2].size()));
+  data_hung d(max_value,max(assembly_sets[set_id1].size(),assembly_sets[set_id2].size()));
 
   
   size_t i=0;

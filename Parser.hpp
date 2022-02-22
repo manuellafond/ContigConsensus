@@ -1,13 +1,15 @@
 #pragma once
 
 #include <cstdlib>
+#include <cstring>
 #include <dirent.h>
-#include <iostream>
 #include <fstream>
+#include <iostream>
 #include <limits>
 #include <memory>
 #include <set>
 #include <stdexcept>
+#include <unistd.h>
 #include <unordered_set>
 #include <utility>
 #include <vector>
@@ -19,6 +21,7 @@
 
 using namespace std;
 
+
 void parseFastaFile(const char* fileName, unsigned set_id, AssemblySet &assembly_sets)
 {
   ifstream file(fileName);
@@ -29,7 +32,7 @@ void parseFastaFile(const char* fileName, unsigned set_id, AssemblySet &assembly
     }
   
   auto &v = assembly_sets[set_id];
-	
+
   file.get(); // do not read the first '>'
   while(!file.eof())
     {
@@ -39,12 +42,12 @@ void parseFastaFile(const char* fileName, unsigned set_id, AssemblySet &assembly
       //		file.ignore(numeric_limits<streamsize>::max(),'\n');
       string name;
       getline(file,name);
-		
+
       int c;
       do {
 	c = file.get();
 	if(c == '\n' || c == EOF|| c == '>' || c == '*') continue;
-	if((char)c != 'A' && (char)c != 'T' && (char)c != (char)'C' && c != (char)'G') continue;
+	if((char)c != 'N' && (char)c != 'A' && (char)c != 'T' && (char)c != (char)'C' && c != (char)'G') continue;
 	seq.push_back(c);
 			
       } while (c!='>' && c != EOF);
@@ -89,7 +92,12 @@ void parseMatches(const char * fileName, AssemblySet & assembly_sets, MatchMatri
     if(a==assembly_sets[id_set1].end()){
       a = assembly_sets[id_set2].find(nameS);
       if(a==assembly_sets[id_set2].end()){
-	cout << "error " << nameS << " doesn't exist"<< endl;
+	cout << "error " << nameS << " doesn't exist in "<< id_set1 << endl;
+	for(auto &p : assembly_sets[id_set1]){
+	  cout << p->getName() << endl;
+	  exit(EXIT_FAILURE);
+	}
+	
 	exit(EXIT_FAILURE);
       }
     }
@@ -104,17 +112,32 @@ void parseMatches(const char * fileName, AssemblySet & assembly_sets, MatchMatri
       }
     }
     Contig *t = a->get();
+
+
+    while(startS != 1 && startS != lengthS && startT !=1 && startT !=lengthT){
+      startS = startS<endS ? startS-1 : startS+1;
+      startT = startT<endT ? startT-1 : startT+1;
+      if(s->getNuc(startS-1)==t->getNuc(startT-1))
+	score++;
+    }
+    while(endS != 1 && endS != lengthS && endT !=1 && endT !=lengthT){
+      endS = startS<endS ? endS+1 : endS-1;
+      endT = startT<endT ? endT+1 : endT-1;
+      if(s->getNuc(endS-1)==t->getNuc(endT-1))
+	score++;
+    }
+
+    unsigned lengthS = startS<endS ? endS-startS : startS-endS;
+    unsigned lengthT = startT<endT ? endT-startT : startT-endT;
+    assert(lengthS==lengthT);
     
-    v.emplace_back(s,t,startS-1,endS-1,startT-1,endT-1,score);
+    if(s->get_set_id()<t->get_set_id())
+      v.emplace_back(s,t,startS-1,endS-1,startT-1,endT-1,score);
+    else
+      v.emplace_back(t,s,startT-1,endT-1,startS-1,endS-1,score);
     
     
   }
-
-
-  // for(auto &m : v)
-  //   m.display_contig_names();
-  
-  // cout << "Size: " << assembly_sets[id_set1].size() << " " << assembly_sets[id_set2].size() << " " << v.size() <<  endl;
 
 }
 
@@ -192,7 +215,37 @@ void treatMatchDirectory(const char *dirName, AssemblySet &assembly_sets, map<st
     if(id1->second<id2->second)
       parseMatches(file.c_str(), assembly_sets, matches,id1->second,id2->second);
     else parseMatches(file.c_str(), assembly_sets, matches,id2->second,id1->second);
-  }	
+  }
+}
+
+void createMatchDirectory(const char *m_dirName,const char *f_dirName,map<string,unsigned> &ids){
+  //std::filesystem::create_directory("test");
+
+  string cmd_mkdir = "mkdir ";
+  cmd_mkdir.append(m_dirName);
+  system(cmd_mkdir.c_str());
+
+  cout << "Generating match files" << endl;
+  for(auto it_a=ids.begin();it_a!=ids.end();++it_a){
+    for(auto it_b=next(it_a);it_b!=ids.end();++it_b){
+      string cmd_blast="blastn -task megablast -query ";
+      cmd_blast.append(f_dirName);
+      cmd_blast.append("/");
+      cmd_blast.append(it_a->first);
+      cmd_blast.append(".fasta -subject ");
+      cmd_blast.append(f_dirName);
+      cmd_blast.append("/");
+      cmd_blast.append(it_b->first);
+      cmd_blast.append(".fasta -ungapped -out \"");
+      cmd_blast.append(m_dirName);
+      cmd_blast.append("/");
+      cmd_blast.append(it_a->first);
+      cmd_blast.append("|");
+      cmd_blast.append(it_b->first);
+      cmd_blast.append(".txt\" -outfmt \"6 score qseqid qstart qend qlen sseqid sstart send slen\"");
+      system(cmd_blast.c_str());
+    }
+  }
 }
 
 void output(const char * fileName, vector<const Match*>& matches)
@@ -203,12 +256,9 @@ void output(const char * fileName, vector<const Match*>& matches)
     cout << "Error: could not open " << fileName << endl;
     exit(EXIT_FAILURE);
   }
-  //  file << "#" << fileTName << " vs " << fileSName << endl;
-
   for(size_t i = 0; i<matches.size(); ++i){
     file << "#Match" << i+1<<"-score-" << matches[i]->score<<endl;
     for(unsigned t = 0; t<=1; ++t){
-      //file << "#" << (t==0 ? fileTName : fileSName) << endl;
       file <<">" << matches[i]->contig(t)->getName() << ": " 
 	   << matches[i]->start(t) << " " << matches[i]->end(t) 
 	   <<endl;
@@ -253,11 +303,11 @@ void output_contig_ordering(const char * fileName, AssemblySet & assembly_sets, 
       file << "file: " << r_map[C.set_id] << " ";
       if(C.is_reversed){
 	file << "position: " << C.shift+1-C.contig_size << " ";
-	file << "yes";
+	file << "reversed";
       }
       else {
 	file << "position: " << C.shift << " ";
-	file << "no";
+	file << "non-reversed";
       }
       file <<endl;
     }

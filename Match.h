@@ -167,13 +167,33 @@ struct Match
     for(size_t i =0; i <=1; i++){
       if (this->contig(i) == m->contig(i) &&
 	  ( this->is_reverse(i)!= m->is_reverse(i) ||
-	    (this->start(i) >= m->start(i) && this->start(i) <= m->end(i)) ||
-	    (this->end(i) >= m->start(i) && this->end(i) <= m->end(i)))) {
+	    (this->start(i) >= min(m->start(i),m->end(i))
+	     && this->start(i) <= max(m->start(i),m->end(i))) ||
+	    (this->end(i) >= min(m->start(i),m->end(i))
+	     && this->end(i) <= max(m->start(i),m->end(i))))) {
 	return true;
       }
     }
     return false;
   }
+
+  bool intersect_debug(const Match * m) const
+  {
+    cout << "1): " << (this->contig((unsigned)0)==m->contig((unsigned)0) && this->contig(1)==m->contig(1)) << endl;
+
+    
+
+    
+    for(size_t i =0; i <=1; i++){
+      cout << "i: " << i  << endl;
+      cout << "this->contig(i) == m->contig(i): " << (this->contig(i) == m->contig(i)) << endl;
+      cout << "this->is_reverse(i)!= m->is_reverse(i): " << (this->is_reverse(i)!= m->is_reverse(i)) << endl;
+      cout << "(this->start(i) >= m->start(i) && this->start(i) <= m->end(i)): " << (this->start(i) >= m->start(i) && this->start(i) <= m->end(i)) << endl;
+      cout << "(this->end(i) >= m->start(i) && this->end(i) <= m->end(i)): " << (this->start(i) >= m->start(i) && this->start(i) <= m->end(i)) << endl;
+    }
+    return false;
+  }
+
 
   bool intersect(vector<const Match*> v) const
   {
@@ -190,9 +210,9 @@ struct Match
   void display_contig_names() const
   {
     cout << this->contigs[0].contig->getName()
-	 << "(" << contigs[0].start <<"," << contigs[0].end<< ")"
+	 << "(" << contigs[0].start <<"," << contigs[0].end<< ", s:"<< contigs[0].start <<")"
 	 << "|" << this->contigs[1].contig->getName()
-	 << "(" << contigs[1].start <<"," << contigs[1].end<< ")"
+	 << "(" << contigs[1].start <<"," << contigs[1].end<< ", s:"<< contigs[0].start <<")"
 	 << "-> " << score
 	 << endl;
   }
